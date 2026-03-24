@@ -148,3 +148,23 @@ TEST(MarkerLogicTest, CollectActiveEventsHandlesDifferentVectorSizes) {
     ASSERT_EQ(result.size(), 1);
     EXPECT_EQ(result[0], h1);
 }
+
+TEST(MarkerLogicTest, DeactivateMarkerChangesOnlySelectedThread) {
+    std::vector<bool> active = { true, true, true };
+
+    deactivate_marker(active, 2);
+
+    EXPECT_EQ(active, (std::vector<bool>{true, false, true}));
+}
+
+
+TEST(MarkerLogicTest, TerminationScenarioClearsAndDeactivatesThread) {
+    std::vector<int> arr = { 1, 2, 2, 3, 0, 2 };
+    std::vector<bool> active = { true, true, true };
+
+    clear_marker_elements(arr, 2);
+    deactivate_marker(active, 2);
+
+    EXPECT_EQ(arr, (std::vector<int>{1, 0, 0, 3, 0, 0}));
+    EXPECT_EQ(active, (std::vector<bool>{true, false, true}));
+}

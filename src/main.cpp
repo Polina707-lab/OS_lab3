@@ -77,12 +77,16 @@ int main() {
             throw std::invalid_argument("Invalid array size");
         }
 
-        a.resize(n, 0);
-
         std::cout << "Enter the number of threads marker: ";
         if (!(std::cin >> m_count) || m_count == 0U) {
             throw std::invalid_argument("Invalid count");
         }
+
+        if (m_count > MAXIMUM_WAIT_OBJECTS) {
+            throw std::invalid_argument("Too many marker threads: limit exceeded");
+        }
+
+        a.resize(n, 0);
 
         cannot_continue.resize(m_count);
         continue_ev.resize(m_count);
@@ -172,11 +176,6 @@ int main() {
                 std::cout << "Invalid thread number. Enter again: ";
             }
 
-            while (!is_valid_thread_number(th_num, active)) {
-                std::cout << "Invalid thread number. Enter again: ";
-                std::cin >> th_num;
-            }
-
             if (!SetEvent(terminate_ev[th_num - 1])) {
                 throw WinApiError::from_last_error("Failed to set terminate event");
             }
@@ -186,7 +185,7 @@ int main() {
                 throw WinApiError::from_last_error("WaitForSingleObject failed for marker thread");
             }
 
-            active[th_num - 1] = false;
+            deactivate_marker(active, th_num);
             active_count--;
 
             std::cout << "Array after thread termination: ";
@@ -194,8 +193,10 @@ int main() {
 
             for (std::size_t i = 0; i < m_count; i++) {
                 if (active[i]) {
-                    ResetEvent(cannot_continue[i]);
 
+                    if (!ResetEvent(cannot_continue[i])) {
+                        throw WinApiError::from_last_error("Failed to reset cannot_continue event");
+                    }
                     if (!SetEvent(continue_ev[i])) {
                         throw WinApiError::from_last_error("Failed to set continue event");
                     }
